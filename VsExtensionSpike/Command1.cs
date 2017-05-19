@@ -14,6 +14,7 @@ using EnvDTE;
 using EnvDTE80;
 using System.Linq;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis;
 
 namespace VsExtensionSpike
 {
@@ -27,6 +28,8 @@ namespace VsExtensionSpike
         /// </summary>
         public const int CommandId = 0x0100;
         public const int SolutionCommandId = 0x0020;
+        public readonly MenuCommand menuCommand;
+
 
         /// <summary>
         /// Command menu group (command set GUID).
@@ -51,6 +54,9 @@ namespace VsExtensionSpike
             {
                 var menuCommandID = new CommandID(CommandSet, CommandId);
                 var menuItem = new MenuCommand(this.MenuItemCallback, menuCommandID);
+                menuCommand = menuItem;
+                Microsoft.VisualStudio.Text.Editor.IWpfTextView textView = GetTextView();
+                textView.Caret.PositionChanged += Caret_PositionChanged;
                 commandService.AddCommand(menuItem);
 
                 menuCommandID = new CommandID(CommandSet, SolutionCommandId);
@@ -59,8 +65,37 @@ namespace VsExtensionSpike
             }
         }
 
+        private void Caret_PositionChanged(object sender, Microsoft.VisualStudio.Text.Editor.CaretPositionChangedEventArgs e)
+        {
+            Microsoft.VisualStudio.Text.Editor.IWpfTextView textView = e.TextView as Microsoft.VisualStudio.Text.Editor.IWpfTextView;
+
+            try
+            {
+                Microsoft.VisualStudio.Text.SnapshotPoint caretPosition = textView.Caret.Position.BufferPosition;
+                var document = Microsoft.CodeAnalysis.Text.Extensions.GetOpenDocumentInCurrentContextWithChanges(caretPosition.Snapshot);
+                var node = document.GetSyntaxRootAsync().Result.FindToken(caretPosition).Parent;
+
+                if (node is MethodDeclarationSyntax)
+                {
+                    menuCommand.Visible = true;
+                    menuCommand.Enabled = true;
+                }
+                else
+                {
+                    menuCommand.Visible = false;
+                    menuCommand.Enabled = false;
+                }
+            }
+            catch (Exception exc)
+            {
+                Console.WriteLine(exc.ToString());
+                menuCommand.Visible = false;
+            }
+        }
+
         /// <summary>
         /// Gets the instance of the command.
+        /// Enables a VSPackage to gain access to IntelliMouse functionality such as using the mouse wheel and handling scroll and pan bitmaps when the mouse wheel is clicked.
         /// </summary>
         public static Command1 Instance
         {
@@ -97,6 +132,9 @@ namespace VsExtensionSpike
         /// <param name="e">Event args.</param>
         private void MenuItemCallback(object sender, EventArgs e)
         {
+            var oleMenuCommand = sender as OleMenuCommand;
+            //oleMenuCommand.BeforeQueryStatus += OleMenuCommand_BeforeQueryStatus;
+
             string message = string.Format(CultureInfo.CurrentCulture, "Inside {0}.MenuItemCallback()", this.GetType().FullName);
             string title = "Command1";
 
@@ -108,16 +146,35 @@ namespace VsExtensionSpike
             //    OLEMSGICON.OLEMSGICON_INFO,
             //    OLEMSGBUTTON.OLEMSGBUTTON_OK,
             //    OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
-
-
             Microsoft.VisualStudio.Text.Editor.IWpfTextView textView = GetTextView();
             Microsoft.VisualStudio.Text.SnapshotPoint caretPosition = textView.Caret.Position.BufferPosition;
             var document = Microsoft.CodeAnalysis.Text.Extensions.GetOpenDocumentInCurrentContextWithChanges(caretPosition.Snapshot);
-            MethodDeclarationSyntax testMethod =
-                document.GetSyntaxRootAsync().Result.FindToken(caretPosition).Parent.AncestorsAndSelf()
-                .OfType<MethodDeclarationSyntax>().FirstOrDefault();
+            var node = document.GetSyntaxRootAsync().Result.FindToken(caretPosition).Parent;
+
+
+
+            //MethodDeclarationSyntax testMethod =
+            //    document.GetSyntaxRootAsync().Result.FindToken(caretPosition).Parent.AncestorsAndSelf()
+            //    .OfType<MethodDeclarationSyntax>().FirstOrDefault();
         }
 
+        private void OleMenuCommand_BeforeQueryStatus(object sender, EventArgs e)
+        {
+            Microsoft.VisualStudio.Text.Editor.IWpfTextView textView = GetTextView();
+            Microsoft.VisualStudio.Text.SnapshotPoint caretPosition = textView.Caret.Position.BufferPosition;
+            var document = Microsoft.CodeAnalysis.Text.Extensions.GetOpenDocumentInCurrentContextWithChanges(caretPosition.Snapshot);
+            var node = document.GetSyntaxRootAsync().Result.FindToken(caretPosition).Parent;
+
+            if (node is MethodDeclarationSyntax)
+            {
+                menuCommand.Visible = true;
+            }
+            else
+            {
+                menuCommand.Visible = false;
+            }
+            throw new NotImplementedException();
+        }
 
         private Microsoft.VisualStudio.Text.Editor.IWpfTextView GetTextView()
         {
