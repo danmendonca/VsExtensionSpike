@@ -63,7 +63,7 @@
         </Strings>
       </Button>
 
-      <Button guid="guidCommand1PackageCmdSet" id="Command1Id" priority="0x0200" type="Button">
+      <Button guid="guidCommand1PackageCmdSet" id="SolutionExplorerGroup" priority="0x0200" type="Button">
         <Parent guid="guidCommand1PackageCmdSet" id="MyMenuGroup" />
         <Icon guid="guidImages" id="bmpPic1" />
         <Strings>

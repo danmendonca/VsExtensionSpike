@@ -26,6 +26,7 @@ namespace VsExtensionSpike
         /// Command ID.
         /// </summary>
         public const int CommandId = 0x0100;
+        public const int SolutionCommandId = 0x0020;
 
         /// <summary>
         /// Command menu group (command set GUID).
@@ -50,6 +51,10 @@ namespace VsExtensionSpike
             {
                 var menuCommandID = new CommandID(CommandSet, CommandId);
                 var menuItem = new MenuCommand(this.MenuItemCallback, menuCommandID);
+                commandService.AddCommand(menuItem);
+
+                menuCommandID = new CommandID(CommandSet, SolutionCommandId);
+                menuItem = new MenuCommand(this.MenuItemCallback, menuCommandID);
                 commandService.AddCommand(menuItem);
             }
         }
