@@ -15,6 +15,9 @@ using EnvDTE80;
 using System.Linq;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis;
+using System.ComponentModel.Composition;
+using Microsoft.VisualStudio.Text.Classification;
+using Microsoft.VisualStudio.Text.Editor;
 
 namespace VsExtensionSpike
 {
@@ -28,8 +31,9 @@ namespace VsExtensionSpike
         /// </summary>
         public const int CommandId = 0x0100;
         public const int SolutionCommandId = 0x0020;
+        public readonly OleMenuCommandService commandService;
         public readonly MenuCommand menuCommand;
-
+        private ITextCaret caret;
 
         /// <summary>
         /// Command menu group (command set GUID).
@@ -52,46 +56,68 @@ namespace VsExtensionSpike
 
             if (this.ServiceProvider.GetService(typeof(IMenuCommandService)) is OleMenuCommandService commandService)
             {
+                this.commandService = commandService;
                 var menuCommandID = new CommandID(CommandSet, CommandId);
-                var menuItem = new MenuCommand(this.MenuItemCallback, menuCommandID);
+                var menuItem = new OleMenuCommand(this.MenuItemCallback, menuCommandID);
                 menuCommand = menuItem;
-                Microsoft.VisualStudio.Text.Editor.IWpfTextView textView = GetTextView();
-                textView.Caret.PositionChanged += Caret_PositionChanged;
-                commandService.AddCommand(menuItem);
-
-                menuCommandID = new CommandID(CommandSet, SolutionCommandId);
-                menuItem = new MenuCommand(this.MenuItemCallback, menuCommandID);
+                //menuCommand.BeforeQueryStatus += MenuCommand_BeforeQueryStatus;
                 commandService.AddCommand(menuItem);
             }
+        }
+
+        private void MenuCommand_BeforeQueryStatus(object sender, EventArgs e)
+        {
+            throw new NotImplementedException();
         }
 
         private void Caret_PositionChanged(object sender, Microsoft.VisualStudio.Text.Editor.CaretPositionChangedEventArgs e)
         {
+            return;
             Microsoft.VisualStudio.Text.Editor.IWpfTextView textView = e.TextView as Microsoft.VisualStudio.Text.Editor.IWpfTextView;
-
+            Microsoft.VisualStudio.Text.SnapshotPoint caretPosition = textView.Caret.Position.BufferPosition;
+            var document = Microsoft.CodeAnalysis.Text.Extensions.GetOpenDocumentInCurrentContextWithChanges(caretPosition.Snapshot);
+            var contentType = caretPosition.Snapshot.ContentType;
+            if (!String.Equals(contentType.TypeName, @"CSharp", StringComparison.Ordinal))
+            {
+                DisableCommand();
+                return;
+            }
             try
             {
-                Microsoft.VisualStudio.Text.SnapshotPoint caretPosition = textView.Caret.Position.BufferPosition;
-                var document = Microsoft.CodeAnalysis.Text.Extensions.GetOpenDocumentInCurrentContextWithChanges(caretPosition.Snapshot);
                 var node = document.GetSyntaxRootAsync().Result.FindToken(caretPosition).Parent;
-
                 if (node is MethodDeclarationSyntax)
                 {
-                    menuCommand.Visible = true;
-                    menuCommand.Enabled = true;
+                    EnableCommand();
                 }
                 else
                 {
-                    menuCommand.Visible = false;
-                    menuCommand.Enabled = false;
+                    DisableCommand();
                 }
             }
-            catch (Exception exc)
+            catch (Exception)
             {
-                Console.WriteLine(exc.ToString());
-                menuCommand.Visible = false;
+                DisableCommand();
             }
         }
+
+        private void DisableCommand()
+        {
+            if (menuCommand.Enabled || menuCommand.Visible)
+            {
+                menuCommand.Visible = false;
+                menuCommand.Enabled = false;
+            }
+        }
+
+        private void EnableCommand()
+        {
+            if (!menuCommand.Enabled || !menuCommand.Visible)
+            {
+                menuCommand.Enabled = true;
+                menuCommand.Visible = true;
+            }
+        }
+
 
         /// <summary>
         /// Gets the instance of the command.
@@ -106,13 +132,10 @@ namespace VsExtensionSpike
         /// <summary>
         /// Gets the service provider from the owner package.
         /// </summary>
-        private IServiceProvider ServiceProvider
-        {
-            get
-            {
-                return this.package;
-            }
-        }
+        private IServiceProvider ServiceProvider { get => this.package; }
+
+        [Import]
+        internal IClassifierAggregatorService classifierAggregatorService = null;
 
         /// <summary>
         /// Initializes the singleton instance of the command.
@@ -127,53 +150,14 @@ namespace VsExtensionSpike
         /// This function is the callback used to execute the command when the menu item is clicked.
         /// See the constructor to see how the menu item is associated with this function using
         /// OleMenuCommandService service and MenuCommand class.
+        /// 
+        /// 
+        /// sender as OleMenuCommand
         /// </summary>
         /// <param name="sender">Event sender.</param>
         /// <param name="e">Event args.</param>
         private void MenuItemCallback(object sender, EventArgs e)
         {
-            var oleMenuCommand = sender as OleMenuCommand;
-            //oleMenuCommand.BeforeQueryStatus += OleMenuCommand_BeforeQueryStatus;
-
-            string message = string.Format(CultureInfo.CurrentCulture, "Inside {0}.MenuItemCallback()", this.GetType().FullName);
-            string title = "Command1";
-
-            // Show a message box to prove we were here
-            //VsShellUtilities.ShowMessageBox(
-            //    this.ServiceProvider,
-            //    message,
-            //    title,
-            //    OLEMSGICON.OLEMSGICON_INFO,
-            //    OLEMSGBUTTON.OLEMSGBUTTON_OK,
-            //    OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
-            Microsoft.VisualStudio.Text.Editor.IWpfTextView textView = GetTextView();
-            Microsoft.VisualStudio.Text.SnapshotPoint caretPosition = textView.Caret.Position.BufferPosition;
-            var document = Microsoft.CodeAnalysis.Text.Extensions.GetOpenDocumentInCurrentContextWithChanges(caretPosition.Snapshot);
-            var node = document.GetSyntaxRootAsync().Result.FindToken(caretPosition).Parent;
-
-
-
-            //MethodDeclarationSyntax testMethod =
-            //    document.GetSyntaxRootAsync().Result.FindToken(caretPosition).Parent.AncestorsAndSelf()
-            //    .OfType<MethodDeclarationSyntax>().FirstOrDefault();
-        }
-
-        private void OleMenuCommand_BeforeQueryStatus(object sender, EventArgs e)
-        {
-            Microsoft.VisualStudio.Text.Editor.IWpfTextView textView = GetTextView();
-            Microsoft.VisualStudio.Text.SnapshotPoint caretPosition = textView.Caret.Position.BufferPosition;
-            var document = Microsoft.CodeAnalysis.Text.Extensions.GetOpenDocumentInCurrentContextWithChanges(caretPosition.Snapshot);
-            var node = document.GetSyntaxRootAsync().Result.FindToken(caretPosition).Parent;
-
-            if (node is MethodDeclarationSyntax)
-            {
-                menuCommand.Visible = true;
-            }
-            else
-            {
-                menuCommand.Visible = false;
-            }
-            throw new NotImplementedException();
         }
 
         private Microsoft.VisualStudio.Text.Editor.IWpfTextView GetTextView()
@@ -187,6 +171,48 @@ namespace VsExtensionSpike
             Microsoft.VisualStudio.ComponentModelHost.IComponentModel componentModel =
                 ServiceProvider.GetService(typeof(Microsoft.VisualStudio.ComponentModelHost.SComponentModel)) as Microsoft.VisualStudio.ComponentModelHost.IComponentModel;
             return componentModel.GetService<Microsoft.VisualStudio.Editor.IVsEditorAdaptersFactoryService>();
+        }
+
+
+        public bool IsAvailable()
+        {
+            try
+            {
+                Microsoft.VisualStudio.Text.Editor.IWpfTextView textView = GetTextView();
+                Microsoft.VisualStudio.Text.SnapshotPoint caretPosition = textView.Caret.Position.BufferPosition;
+
+                //var currentCaret = textView.Caret;
+                //if (caret == null)
+                //{
+                //    caret = currentCaret;
+                //    currentCaret.PositionChanged += Caret_PositionChanged;
+                //}
+                //else
+                //{
+                //    if(currentCaret != caret)
+                //    {
+                //        currentCaret.PositionChanged += Caret_PositionChanged;
+                //    }
+                //}
+
+                var contentType = caretPosition.Snapshot.ContentType;
+                if (String.Equals(contentType.TypeName, @"CSharp", StringComparison.Ordinal))
+                {
+                    var document = Microsoft.CodeAnalysis.Text.Extensions.GetOpenDocumentInCurrentContextWithChanges(caretPosition.Snapshot);
+                    var node = document.GetSyntaxRootAsync().Result.FindToken(caretPosition).Parent;
+                    if (node is MethodDeclarationSyntax)
+                    {
+                        EnableCommand();
+                        return true;
+                    }
+                }
+                DisableCommand();
+            }
+            catch (Exception)
+            {
+                DisableCommand();
+            }
+            return false;
         }
     }
 }

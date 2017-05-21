@@ -58,19 +58,13 @@
       <Button guid="guidCommand1PackageCmdSet" id="Command1Id" priority="0x0100" type="Button">
         <Parent guid="guidCommand1PackageCmdSet" id="MyMenuGroup" />
         <Icon guid="guidImages" id="bmpPic1" />
+        <!--<CommandFlag>DefaultDisabled</CommandFlag>
+        <CommandFlag>DefaultInvisible</CommandFlag>-->
+        <CommandFlag>DynamicVisibility</CommandFlag>
         <Strings>
           <ButtonText>I am Button</ButtonText>
         </Strings>
       </Button>
-
-      <Button guid="guidCommand1PackageCmdSet" id="SolutionExplorerGroup" priority="0x0200" type="Button">
-        <Parent guid="guidCommand1PackageCmdSet" id="MyMenuGroup" />
-        <Icon guid="guidImages" id="bmpPic1" />
-        <Strings>
-          <ButtonText>I am Button2</ButtonText>
-        </Strings>
-      </Button>
-
     </Buttons>
 
     <!--The bitmaps section is used to define the bitmaps that are used for the commands.-->
