@@ -33,7 +33,6 @@ namespace VsExtensionSpike
         public const int SolutionCommandId = 0x0020;
         public readonly OleMenuCommandService commandService;
         public readonly MenuCommand menuCommand;
-        private ITextCaret caret;
 
         /// <summary>
         /// Command menu group (command set GUID).
@@ -60,46 +59,21 @@ namespace VsExtensionSpike
                 var menuCommandID = new CommandID(CommandSet, CommandId);
                 var menuItem = new OleMenuCommand(this.MenuItemCallback, menuCommandID);
                 menuCommand = menuItem;
-                //menuCommand.BeforeQueryStatus += MenuCommand_BeforeQueryStatus;
                 commandService.AddCommand(menuItem);
             }
+
+            /*
+             * Available commands: open command window> Tools.$AvailableCommand$
+             * var dte = (DTE2)ServiceProvider.GetService(typeof(DTE)); an example of how to get DTE
+             file1
+             file2
+              dte.ExecuteCommand("Tools.$AvailableCommand$", $"\"{file1}\" \"{file2}\""; example of how to execute existing commands in VS
+             */
         }
 
-        private void MenuCommand_BeforeQueryStatus(object sender, EventArgs e)
-        {
-            throw new NotImplementedException();
-        }
-
-        private void Caret_PositionChanged(object sender, Microsoft.VisualStudio.Text.Editor.CaretPositionChangedEventArgs e)
-        {
-            return;
-            Microsoft.VisualStudio.Text.Editor.IWpfTextView textView = e.TextView as Microsoft.VisualStudio.Text.Editor.IWpfTextView;
-            Microsoft.VisualStudio.Text.SnapshotPoint caretPosition = textView.Caret.Position.BufferPosition;
-            var document = Microsoft.CodeAnalysis.Text.Extensions.GetOpenDocumentInCurrentContextWithChanges(caretPosition.Snapshot);
-            var contentType = caretPosition.Snapshot.ContentType;
-            if (!String.Equals(contentType.TypeName, @"CSharp", StringComparison.Ordinal))
-            {
-                DisableCommand();
-                return;
-            }
-            try
-            {
-                var node = document.GetSyntaxRootAsync().Result.FindToken(caretPosition).Parent;
-                if (node is MethodDeclarationSyntax)
-                {
-                    EnableCommand();
-                }
-                else
-                {
-                    DisableCommand();
-                }
-            }
-            catch (Exception)
-            {
-                DisableCommand();
-            }
-        }
-
+        /// <summary>
+        /// 
+        /// </summary>
         private void DisableCommand()
         {
             if (menuCommand.Enabled || menuCommand.Visible)
@@ -109,6 +83,9 @@ namespace VsExtensionSpike
             }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
         private void EnableCommand()
         {
             if (!menuCommand.Enabled || !menuCommand.Visible)
@@ -132,7 +109,7 @@ namespace VsExtensionSpike
         /// <summary>
         /// Gets the service provider from the owner package.
         /// </summary>
-        private IServiceProvider ServiceProvider { get => this.package; }
+        public IServiceProvider ServiceProvider { get => package; }
 
         [Import]
         internal IClassifierAggregatorService classifierAggregatorService = null;
@@ -150,22 +127,29 @@ namespace VsExtensionSpike
         /// This function is the callback used to execute the command when the menu item is clicked.
         /// See the constructor to see how the menu item is associated with this function using
         /// OleMenuCommandService service and MenuCommand class.
-        /// 
-        /// 
-        /// sender as OleMenuCommand
         /// </summary>
         /// <param name="sender">Event sender.</param>
         /// <param name="e">Event args.</param>
         private void MenuItemCallback(object sender, EventArgs e)
         {
+            Console.Write("");
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
         private Microsoft.VisualStudio.Text.Editor.IWpfTextView GetTextView()
         {
             IVsTextManager textManager = (IVsTextManager)ServiceProvider.GetService(typeof(SVsTextManager));
             textManager.GetActiveView(1, null, out IVsTextView textView);
             return GetEditorAdaptersFactoryService().GetWpfTextView(textView);
         }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
         private Microsoft.VisualStudio.Editor.IVsEditorAdaptersFactoryService GetEditorAdaptersFactoryService()
         {
             Microsoft.VisualStudio.ComponentModelHost.IComponentModel componentModel =
@@ -173,27 +157,16 @@ namespace VsExtensionSpike
             return componentModel.GetService<Microsoft.VisualStudio.Editor.IVsEditorAdaptersFactoryService>();
         }
 
-
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
         public bool IsAvailable()
         {
             try
             {
                 Microsoft.VisualStudio.Text.Editor.IWpfTextView textView = GetTextView();
                 Microsoft.VisualStudio.Text.SnapshotPoint caretPosition = textView.Caret.Position.BufferPosition;
-
-                //var currentCaret = textView.Caret;
-                //if (caret == null)
-                //{
-                //    caret = currentCaret;
-                //    currentCaret.PositionChanged += Caret_PositionChanged;
-                //}
-                //else
-                //{
-                //    if(currentCaret != caret)
-                //    {
-                //        currentCaret.PositionChanged += Caret_PositionChanged;
-                //    }
-                //}
 
                 var contentType = caretPosition.Snapshot.ContentType;
                 if (String.Equals(contentType.TypeName, @"CSharp", StringComparison.Ordinal))
@@ -212,6 +185,7 @@ namespace VsExtensionSpike
             {
                 DisableCommand();
             }
+
             return false;
         }
     }

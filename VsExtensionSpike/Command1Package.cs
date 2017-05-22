@@ -43,6 +43,7 @@ namespace VsExtensionSpike
     [Guid(Command1Package.PackageGuidString)]
     [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1650:ElementDocumentationMustBeSpelledCorrectly", Justification = "pkgdef, VS and vsixmanifest are valid VS terms")]
     [ProvideAutoLoad("f1536ef8-92ec-443c-9ed7-fdadf150da82")]
+    //[ProvideToolWindow(typeof(ToolWindow1))]
     public sealed class Command1Package : Package, IOleCommandTarget
     {
         /// <summary>
@@ -59,14 +60,6 @@ namespace VsExtensionSpike
             // any Visual Studio service because at this point the package object is created but
             // not sited yet inside Visual Studio environment. The place to do all the other
             // initialization is the Initialize method.
-
-            this.ToolboxInitialized += Command1Package_ToolboxInitialized;
-        }
-
-        private void Command1Package_ToolboxInitialized(object sender, EventArgs e)
-        {
-            //
-            //throw new NotImplementedException();
         }
 
         #region Package Members
@@ -79,6 +72,7 @@ namespace VsExtensionSpike
         {
             Command1.Initialize(this);
             base.Initialize();
+            //ToolWindow1Command.Initialize(this);
         }
 
         #endregion
@@ -89,7 +83,9 @@ namespace VsExtensionSpike
             Debug.Assert(prgCmds != null, "NULL argument");
 
             if ((prgCmds == null))
+            {
                 return VSConstants.E_INVALIDARG;
+            }
 
             OLECMDF cmdf = OLECMDF.OLECMDF_SUPPORTED;
 
@@ -112,8 +108,5 @@ namespace VsExtensionSpike
 
             return VSConstants.S_OK;
         }
-
-        private const OLECMDF COMMAND_SUPPORTED = OLECMDF.OLECMDF_SUPPORTED | OLECMDF.OLECMDF_ENABLED;
-        private const OLECMDF COMMAND_UNSUPPORTED = OLECMDF.OLECMDF_INVISIBLE;
     }
 }

@@ -39,9 +39,6 @@
       <Group guid="guidCommand1PackageCmdSet" id="MyMenuGroup" priority="0x0100">
         <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_CODEWIN"/>
       </Group>
-      <Group guid="guidCommand1PackageCmdSet" id="SolutionExplorerGroup" priority="0x0500">
-        <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_ITEMNODE"/>
-      </Group>
     </Groups>
 
     <!--Buttons section. -->
