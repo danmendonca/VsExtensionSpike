@@ -44,6 +44,13 @@ namespace VsExtensionSpike
         /// </summary>
         private readonly Package package;
 
+
+        /// <summary>
+        /// 
+        /// </summary>
+        private MethodDeclarationSyntax MethodDeclarationSyntax { get; set; } = null;
+
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Command1"/> class.
         /// Adds our command handlers for menu (commands must exist in the command table file)
@@ -132,6 +139,9 @@ namespace VsExtensionSpike
         /// <param name="e">Event args.</param>
         private void MenuItemCallback(object sender, EventArgs e)
         {
+            var dte = (DTE2)ServiceProvider.GetService(typeof(DTE));
+            dte.ExecuteCommand("View.SpikeWindow");
+            SpikeWindowCommand.Instance.Test = this.MethodDeclarationSyntax;
             Console.Write("");
         }
 
@@ -173,8 +183,9 @@ namespace VsExtensionSpike
                 {
                     var document = Microsoft.CodeAnalysis.Text.Extensions.GetOpenDocumentInCurrentContextWithChanges(caretPosition.Snapshot);
                     var node = document.GetSyntaxRootAsync().Result.FindToken(caretPosition).Parent;
-                    if (node is MethodDeclarationSyntax)
+                    if (node is MethodDeclarationSyntax selected)
                     {
+                        MethodDeclarationSyntax = selected;
                         EnableCommand();
                         return true;
                     }
@@ -186,6 +197,7 @@ namespace VsExtensionSpike
                 DisableCommand();
             }
 
+            MethodDeclarationSyntax = null;
             return false;
         }
     }

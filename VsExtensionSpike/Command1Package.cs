@@ -17,6 +17,7 @@ using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.Win32;
 using System.ComponentModel.Composition;
 using Microsoft.VisualStudio.Utilities;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace VsExtensionSpike
 {
@@ -40,9 +41,10 @@ namespace VsExtensionSpike
     [PackageRegistration(UseManagedResourcesOnly = true)]
     [InstalledProductRegistration("#110", "#112", "1.0", IconResourceID = 400)] // Info on this package for Help/About
     [ProvideMenuResource("Menus.ctmenu", 1)]
+    [ProvideToolWindow(typeof(SpikeWindow))]
     [Guid(Command1Package.PackageGuidString)]
-    [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1650:ElementDocumentationMustBeSpelledCorrectly", Justification = "pkgdef, VS and vsixmanifest are valid VS terms")]
     [ProvideAutoLoad("f1536ef8-92ec-443c-9ed7-fdadf150da82")]
+    [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1650:ElementDocumentationMustBeSpelledCorrectly", Justification = "pkgdef, VS and vsixmanifest are valid VS terms")]
     public sealed class Command1Package : Package, IOleCommandTarget
     {
         /// <summary>
@@ -70,6 +72,7 @@ namespace VsExtensionSpike
         protected override void Initialize()
         {
             Command1.Initialize(this);
+            SpikeWindowCommand.Initialize(this);
             base.Initialize();
         }
 
@@ -85,23 +88,31 @@ namespace VsExtensionSpike
                 return VSConstants.E_INVALIDARG;
             }
 
-            OLECMDF cmdf = OLECMDF.OLECMDF_SUPPORTED;
-
             for (int i = 0; i < cCmds; i++)
             {
+                OLECMDF cmdf = OLECMDF.OLECMDF_SUPPORTED;
                 var command = prgCmds[i];
-                if(command.cmdID == Command1.CommandId)
+                switch (command.cmdID)
                 {
-                    if(Command1.Instance != null && Command1.Instance.IsAvailable())
-                    {
-                        cmdf |= OLECMDF.OLECMDF_ENABLED;
-                    }
-                    else
-                    {
-                        cmdf |= OLECMDF.OLECMDF_INVISIBLE;
-                    }
+                    case Command1.CommandId:
+                        if (Command1.Instance != null && Command1.Instance.IsAvailable())
+                        {
+                            cmdf |= OLECMDF.OLECMDF_ENABLED;
+                        }
+                        else
+                        {
+                            cmdf |= OLECMDF.OLECMDF_INVISIBLE;
+                        }
+                        prgCmds[i].cmdf = (uint)cmdf;
+                        break;
+                    case SpikeWindowCommand.CommandId:
+                        //cmdf |= OLECMDF.OLECMDF_INVISIBLE;
+                        //prgCmds[i].cmdf = (uint)cmdf;
+                        break;
+
+                    default:
+                        break;
                 }
-                prgCmds[i].cmdf = (uint)cmdf;
             }
 
             return VSConstants.S_OK;
