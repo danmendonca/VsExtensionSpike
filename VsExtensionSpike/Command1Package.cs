@@ -47,7 +47,7 @@ namespace VsExtensionSpike
     [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1650:ElementDocumentationMustBeSpelledCorrectly", Justification = "pkgdef, VS and vsixmanifest are valid VS terms")]
     public sealed class Command1Package : Package, IOleCommandTarget
     {
-        /// <summary>
+        /// <summary>Visua
         /// Command1Package GUID string.
         /// </summary>
         public const string PackageGuidString = "979735ed-4c85-48c9-b0e9-5b274d1be907";

@@ -62,6 +62,7 @@
           <ButtonText>I am Button</ButtonText>
         </Strings>
       </Button>
+      
       <Button guid="guidCommand1PackageCmdSet" id="cmdidSpikeWindowCommand" priority="0x0100" type="Button">
         <Parent guid="guidSHLMainMenu" id="IDG_VS_WNDO_OTRWNDWS1" />
         <Icon guid="guidImages2" id="bmpPic1" />

@@ -18,6 +18,10 @@ using Microsoft.CodeAnalysis;
 using System.ComponentModel.Composition;
 using Microsoft.VisualStudio.Text.Classification;
 using Microsoft.VisualStudio.Text.Editor;
+using Microsoft.VisualStudio.Text;
+using Microsoft.CodeAnalysis.Text;
+using Microsoft.VisualStudio.ComponentModelHost;
+using Microsoft.VisualStudio.Editor;
 
 namespace VsExtensionSpike
 {
@@ -149,7 +153,7 @@ namespace VsExtensionSpike
         /// 
         /// </summary>
         /// <returns></returns>
-        private Microsoft.VisualStudio.Text.Editor.IWpfTextView GetTextView()
+        private IWpfTextView GetTextView()
         {
             IVsTextManager textManager = (IVsTextManager)ServiceProvider.GetService(typeof(SVsTextManager));
             textManager.GetActiveView(1, null, out IVsTextView textView);
@@ -160,11 +164,10 @@ namespace VsExtensionSpike
         /// 
         /// </summary>
         /// <returns></returns>
-        private Microsoft.VisualStudio.Editor.IVsEditorAdaptersFactoryService GetEditorAdaptersFactoryService()
+        private IVsEditorAdaptersFactoryService GetEditorAdaptersFactoryService()
         {
-            Microsoft.VisualStudio.ComponentModelHost.IComponentModel componentModel =
-                ServiceProvider.GetService(typeof(Microsoft.VisualStudio.ComponentModelHost.SComponentModel)) as Microsoft.VisualStudio.ComponentModelHost.IComponentModel;
-            return componentModel.GetService<Microsoft.VisualStudio.Editor.IVsEditorAdaptersFactoryService>();
+            IComponentModel componentModel = ServiceProvider.GetService(typeof(SComponentModel)) as IComponentModel;
+            return componentModel.GetService<IVsEditorAdaptersFactoryService>();
         }
 
         /// <summary>
@@ -175,13 +178,13 @@ namespace VsExtensionSpike
         {
             try
             {
-                Microsoft.VisualStudio.Text.Editor.IWpfTextView textView = GetTextView();
-                Microsoft.VisualStudio.Text.SnapshotPoint caretPosition = textView.Caret.Position.BufferPosition;
+                IWpfTextView textView = GetTextView();
+                SnapshotPoint caretPosition = textView.Caret.Position.BufferPosition;
 
                 var contentType = caretPosition.Snapshot.ContentType;
                 if (String.Equals(contentType.TypeName, @"CSharp", StringComparison.Ordinal))
                 {
-                    var document = Microsoft.CodeAnalysis.Text.Extensions.GetOpenDocumentInCurrentContextWithChanges(caretPosition.Snapshot);
+                    var document = Extensions.GetOpenDocumentInCurrentContextWithChanges(caretPosition.Snapshot);
                     var node = document.GetSyntaxRootAsync().Result.FindToken(caretPosition).Parent;
                     if (node is MethodDeclarationSyntax selected)
                     {
